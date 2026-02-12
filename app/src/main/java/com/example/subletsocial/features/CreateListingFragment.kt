@@ -1,5 +1,8 @@
 package com.example.subletsocial.features
 
+import android.app.AlertDialog
+import android.graphics.BitmapFactory
+import android.net.Uri
 import android.app.DatePickerDialog
 import android.graphics.Bitmap
 import android.os.Bundle
@@ -27,6 +30,19 @@ class CreateListingFragment : Fragment() {
 
     private val selectedBitmaps = mutableListOf<Bitmap>()
 
+    private val galleryLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let {
+            try {
+                val inputStream = requireContext().contentResolver.openInputStream(it)
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+                selectedBitmaps.add(bitmap)
+                addThumbnailToView(bitmap)
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Failed to load image", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     private val cameraLauncher = registerForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
         if (bitmap != null) {
             selectedBitmaps.add(bitmap)
@@ -50,7 +66,7 @@ class CreateListingFragment : Fragment() {
         setupDatePickers()
 
         binding.cvImageUpload.setOnClickListener {
-            cameraLauncher.launch(null)
+            showImageSourceDialog()
         }
 
         binding.btnPost.setOnClickListener {
@@ -83,6 +99,19 @@ class CreateListingFragment : Fragment() {
                 saveListingToDb(listingId, emptyList(), title, priceStr)
             }
         }
+    }
+
+    private fun showImageSourceDialog() {
+        val options = arrayOf("Take Photo", "Choose from Gallery")
+        AlertDialog.Builder(requireContext())
+            .setTitle("Add Photo")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> cameraLauncher.launch(null)
+                    1 -> galleryLauncher.launch("image/*")
+                }
+            }
+            .show()
     }
 
     private fun addThumbnailToView(bitmap: Bitmap) {
