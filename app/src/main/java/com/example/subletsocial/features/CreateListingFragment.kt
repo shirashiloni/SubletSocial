@@ -1,11 +1,15 @@
 package com.example.subletsocial.features
 
 import android.app.DatePickerDialog
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.example.subletsocial.databinding.FragmentCreateListingBinding
@@ -21,6 +25,17 @@ class CreateListingFragment : Fragment() {
     private var _binding: FragmentCreateListingBinding? = null
     private val binding get() = _binding!!
 
+    private val selectedBitmaps = mutableListOf<Bitmap>()
+
+    private val cameraLauncher = registerForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
+        if (bitmap != null) {
+            selectedBitmaps.add(bitmap)
+            addThumbnailToView(bitmap)
+        } else {
+            Toast.makeText(requireContext(), "Failed to capture photo", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -34,6 +49,10 @@ class CreateListingFragment : Fragment() {
 
         setupDatePickers()
 
+        binding.cvImageUpload.setOnClickListener {
+            cameraLauncher.launch(null)
+        }
+
         binding.btnPost.setOnClickListener {
             val title = binding.etTitle.text.toString()
             val priceStr = binding.etPrice.text.toString()
@@ -44,14 +63,6 @@ class CreateListingFragment : Fragment() {
             val startDate = binding.etStartDate.text.toString()
             val endDate = binding.etEndDate.text.toString()
 
-            val selectedAmenities = mutableListOf<String>()
-            for (i in 0 until binding.cgAmenities.childCount) {
-                val chip = binding.cgAmenities.getChildAt(i) as Chip
-                if (chip.isChecked) {
-                    selectedAmenities.add(chip.text.toString())
-                }
-            }
-
             if (title.isEmpty() || priceStr.isEmpty() || description.isEmpty() ||
                 location.isEmpty() || bedroomsStr.isEmpty() || bathroomsStr.isEmpty() ||
                 startDate.isEmpty() || endDate.isEmpty()) {
@@ -59,39 +70,57 @@ class CreateListingFragment : Fragment() {
                 return@setOnClickListener
             }
 
-            val price = priceStr.toIntOrNull() ?: 0
-            val bedrooms = bedroomsStr.toIntOrNull() ?: 0
-            val bathrooms = bathroomsStr.toIntOrNull() ?: 0
-
-            val currentUser = FirebaseAuth.getInstance().currentUser
-            if (currentUser == null) {
-                Toast.makeText(context, "User not logged in", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
             binding.progressBar.visibility = View.VISIBLE
             binding.btnPost.isEnabled = false
 
             val listingId = UUID.randomUUID().toString()
-            val ownerId = currentUser.uid
 
-            val listing = Listing(
-                id = listingId,
-                title = title,
-                price = price,
-                description = description,
-                imageUrl = "",
-                ownerId = ownerId,
-                location = location,
-                bedrooms = bedrooms,
-                bathrooms = bathrooms,
-                startDate = startDate,
-                endDate = endDate,
-                amenities = selectedAmenities,
-                lastUpdated = System.currentTimeMillis()
-            )
+            if (selectedBitmaps.isNotEmpty()) {
+                Model.shared.uploadImages(selectedBitmaps, listingId) { imageUrls ->
+                    saveListingToDb(listingId, imageUrls, title, priceStr)
+                }
+            } else {
+                saveListingToDb(listingId, emptyList(), title, priceStr)
+            }
+        }
+    }
 
-            Model.shared.addListing(listing) {
+    private fun addThumbnailToView(bitmap: Bitmap) {
+        val imageView = ImageView(requireContext())
+        val params = LinearLayout.LayoutParams(300, 300)
+        params.setMargins(16, 0, 16, 0)
+        imageView.layoutParams = params
+        imageView.setImageBitmap(bitmap)
+        imageView.scaleType = ImageView.ScaleType.CENTER_CROP
+
+        binding.llImagesContainer.addView(imageView)
+    }
+
+    private fun saveListingToDb(id: String, imageUrls: List<String>, title: String, priceStr: String) {
+        val selectedAmenities = mutableListOf<String>()
+        for (i in 0 until binding.cgAmenities.childCount) {
+            val chip = binding.cgAmenities.getChildAt(i) as Chip
+            if (chip.isChecked) selectedAmenities.add(chip.text.toString())
+        }
+
+        val listing = Listing(
+            id = id,
+            title = title,
+            imageUrls = imageUrls,
+            price = priceStr.toIntOrNull() ?: 0,
+            description = binding.etDescription.text.toString(),
+            ownerId = FirebaseAuth.getInstance().currentUser?.uid ?: "",
+            location = binding.etLocation.text.toString(),
+            bedrooms = binding.etBedrooms.text.toString().toIntOrNull() ?: 0,
+            bathrooms = binding.etBathrooms.text.toString().toIntOrNull() ?: 0,
+            startDate = binding.etStartDate.text.toString(),
+            endDate = binding.etEndDate.text.toString(),
+            amenities = selectedAmenities,
+            lastUpdated = System.currentTimeMillis()
+        )
+
+        Model.shared.addListing(listing) {
+            if (_binding != null) {
                 binding.progressBar.visibility = View.GONE
                 findNavController().popBackStack()
             }
@@ -100,15 +129,10 @@ class CreateListingFragment : Fragment() {
 
     private fun setupDatePickers() {
         binding.etStartDate.setOnClickListener {
-            showDatePickerDialog { date ->
-                binding.etStartDate.setText(date)
-            }
+            showDatePickerDialog { date -> binding.etStartDate.setText(date) }
         }
-
         binding.etEndDate.setOnClickListener {
-            showDatePickerDialog { date ->
-                binding.etEndDate.setText(date)
-            }
+            showDatePickerDialog { date -> binding.etEndDate.setText(date) }
         }
     }
 
@@ -118,15 +142,14 @@ class CreateListingFragment : Fragment() {
         val month = calendar.get(Calendar.MONTH)
         val day = calendar.get(Calendar.DAY_OF_MONTH)
 
-        val datePickerDialog = DatePickerDialog(
+        DatePickerDialog(
             requireContext(),
             { _, selectedYear, selectedMonth, selectedDay ->
                 val formattedDate = "$selectedDay/${selectedMonth + 1}/$selectedYear"
                 onDateSelected(formattedDate)
             },
             year, month, day
-        )
-        datePickerDialog.show()
+        ).show()
     }
 
     override fun onDestroyView() {

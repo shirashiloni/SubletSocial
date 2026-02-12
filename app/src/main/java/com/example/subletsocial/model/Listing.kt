@@ -13,7 +13,7 @@ data class Listing(
     val title: String,
     val price: Int,
     val description: String,
-    val imageUrl: String,
+    val imageUrls: List<String>,
     val ownerId: String,
     val location: String,
     val bedrooms: Int,
@@ -23,7 +23,7 @@ data class Listing(
     val amenities: List<String>,
     val lastUpdated: Long
 ) {
-    constructor() : this("", "", 0, "", "", "", "", 0, 0, "", "", listOf(), 0)
+    constructor() : this("", "", 0, "", listOf(), "", "", 0, 0, "", "", listOf(), 0)
 }
 
 class ListingTypeConverters {

@@ -7,6 +7,9 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.google.firebase.firestore.FirebaseFirestore
 import java.util.concurrent.Executors
+import android.graphics.Bitmap
+import com.google.firebase.storage.FirebaseStorage
+import java.io.ByteArrayOutputStream
 
 class Model private constructor() {
 
@@ -71,5 +74,46 @@ class Model private constructor() {
             }
             .addOnFailureListener {
             }
+    }
+
+    private val storage = FirebaseStorage.getInstance()
+
+    fun uploadImage(image: Bitmap, name: String, callback: (String?) -> Unit) {
+        val storageRef = storage.reference
+        val imageRef = storageRef.child("images/$name.jpg")
+
+        val baos = ByteArrayOutputStream()
+        image.compress(Bitmap.CompressFormat.JPEG, 100, baos)
+        val data = baos.toByteArray()
+
+        val uploadTask = imageRef.putBytes(data)
+        uploadTask.addOnFailureListener {
+            callback(null)
+        }.addOnSuccessListener { taskSnapshot ->
+            imageRef.downloadUrl.addOnSuccessListener { uri ->
+                callback(uri.toString())
+            }
+        }
+    }
+
+    fun uploadImages(bitmaps: List<Bitmap>, name: String, callback: (List<String>) -> Unit) {
+        val uploadedUrls = mutableListOf<String>()
+        var count = 0
+
+        for (i in bitmaps.indices) {
+            val bitmap = bitmaps[i]
+            val uniqueName = "${name}_$i"
+
+            uploadImage(bitmap, uniqueName) { url ->
+                if (url != null) {
+                    uploadedUrls.add(url)
+                }
+                count++
+
+                if (count == bitmaps.size) {
+                    callback(uploadedUrls)
+                }
+            }
+        }
     }
 }
