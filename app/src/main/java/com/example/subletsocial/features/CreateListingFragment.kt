@@ -1,5 +1,6 @@
 package com.example.subletsocial.features
 
+import android.app.DatePickerDialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -12,6 +13,7 @@ import com.example.subletsocial.model.Listing
 import com.example.subletsocial.model.Model
 import com.google.android.material.chip.Chip
 import com.google.firebase.auth.FirebaseAuth
+import java.util.Calendar
 import java.util.UUID
 
 class CreateListingFragment : Fragment() {
@@ -29,6 +31,8 @@ class CreateListingFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        setupDatePickers()
 
         binding.btnPost.setOnClickListener {
             val title = binding.etTitle.text.toString()
@@ -48,8 +52,8 @@ class CreateListingFragment : Fragment() {
                 }
             }
 
-            if (title.isEmpty() || priceStr.isEmpty() || description.isEmpty() || 
-                location.isEmpty() || bedroomsStr.isEmpty() || bathroomsStr.isEmpty() || 
+            if (title.isEmpty() || priceStr.isEmpty() || description.isEmpty() ||
+                location.isEmpty() || bedroomsStr.isEmpty() || bathroomsStr.isEmpty() ||
                 startDate.isEmpty() || endDate.isEmpty()) {
                 Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
@@ -58,7 +62,7 @@ class CreateListingFragment : Fragment() {
             val price = priceStr.toIntOrNull() ?: 0
             val bedrooms = bedroomsStr.toIntOrNull() ?: 0
             val bathrooms = bathroomsStr.toIntOrNull() ?: 0
-            
+
             val currentUser = FirebaseAuth.getInstance().currentUser
             if (currentUser == null) {
                 Toast.makeText(context, "User not logged in", Toast.LENGTH_SHORT).show()
@@ -92,6 +96,37 @@ class CreateListingFragment : Fragment() {
                 findNavController().popBackStack()
             }
         }
+    }
+
+    private fun setupDatePickers() {
+        binding.etStartDate.setOnClickListener {
+            showDatePickerDialog { date ->
+                binding.etStartDate.setText(date)
+            }
+        }
+
+        binding.etEndDate.setOnClickListener {
+            showDatePickerDialog { date ->
+                binding.etEndDate.setText(date)
+            }
+        }
+    }
+
+    private fun showDatePickerDialog(onDateSelected: (String) -> Unit) {
+        val calendar = Calendar.getInstance()
+        val year = calendar.get(Calendar.YEAR)
+        val month = calendar.get(Calendar.MONTH)
+        val day = calendar.get(Calendar.DAY_OF_MONTH)
+
+        val datePickerDialog = DatePickerDialog(
+            requireContext(),
+            { _, selectedYear, selectedMonth, selectedDay ->
+                val formattedDate = "$selectedDay/${selectedMonth + 1}/$selectedYear"
+                onDateSelected(formattedDate)
+            },
+            year, month, day
+        )
+        datePickerDialog.show()
     }
 
     override fun onDestroyView() {
