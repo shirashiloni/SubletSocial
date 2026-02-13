@@ -30,6 +30,10 @@ class ListingsAdapter(private var listings: List<Listing>) :
         holder.binding.tvListingLocation.text = listing.location
         holder.binding.tvListingPrice.text = "$${listing.price}"
 
+        holder.binding.tvListingDates.text = "${listing.startDate} - ${listing.endDate}"
+
+        holder.binding.tvListingRooms.text = "${listing.bedrooms} bed • ${listing.bathrooms} bath"
+
         if (listing.imageUrls.isNotEmpty()) {
             val firstImageUrl = listing.imageUrls[0]
             if (firstImageUrl.isNotEmpty()) {
