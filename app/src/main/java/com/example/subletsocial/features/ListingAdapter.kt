@@ -15,13 +15,11 @@ class ListingsAdapter(private var listings: List<Listing>) :
         RecyclerView.ViewHolder(binding.root)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ListingViewHolder {
-        val binding = ListingListItemBinding.inflate(
-            LayoutInflater.from(parent.context),
-            parent,
-            false
-        )
+        val binding = ListingListItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return ListingViewHolder(binding)
     }
+
+    override fun getItemCount(): Int = listings.size
 
     override fun onBindViewHolder(holder: ListingViewHolder, position: Int) {
         val listing = listings[position]
@@ -31,23 +29,14 @@ class ListingsAdapter(private var listings: List<Listing>) :
         holder.binding.tvListingPrice.text = "$${listing.price}"
 
         holder.binding.tvListingDates.text = "${listing.startDate} - ${listing.endDate}"
-
         holder.binding.tvListingRooms.text = "${listing.bedrooms} bed • ${listing.bathrooms} bath"
 
-        if (listing.imageUrls.isNotEmpty()) {
-            val firstImageUrl = listing.imageUrls[0]
-            if (firstImageUrl.isNotEmpty()) {
-                Picasso.get()
-                    .load(firstImageUrl)
-                    .placeholder(android.R.drawable.ic_menu_gallery)
-                    .into(holder.binding.ivListingImage)
-            }
+        if (listing.imageUrls.isNotEmpty() && listing.imageUrls[0].isNotEmpty()) {
+            Picasso.get().load(listing.imageUrls[0]).fit().centerCrop().into(holder.binding.ivListingImage)
         } else {
             holder.binding.ivListingImage.setImageResource(android.R.drawable.ic_menu_gallery)
         }
     }
-
-    override fun getItemCount(): Int = listings.size
 
     @SuppressLint("NotifyDataSetChanged")
     fun updateListings(newListings: List<Listing>) {
