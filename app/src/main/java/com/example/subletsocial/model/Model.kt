@@ -76,6 +76,21 @@ class Model private constructor() {
             }
     }
 
+    fun getListingsByOwner(userId: String): LiveData<List<Listing>> {
+        val liveData = MutableLiveData<List<Listing>>()
+        firestore.collection("listings")
+            .whereEqualTo("ownerId", userId)
+            .get()
+            .addOnSuccessListener { result ->
+                val listings = result.toObjects(Listing::class.java)
+                liveData.postValue(listings)
+            }
+            .addOnFailureListener {
+                // Handle error
+            }
+        return liveData
+    }
+
     private val storage = FirebaseStorage.getInstance()
 
     fun uploadImage(image: Bitmap, name: String, callback: (String?) -> Unit) {
