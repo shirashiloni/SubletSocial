@@ -1,4 +1,4 @@
-package com.example.subletsocial.model // Make sure this matches your package!
+package com.example.subletsocial.model
 
 import android.os.Handler
 import android.os.Looper
@@ -20,7 +20,6 @@ class Model private constructor() {
     private val executor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
 
-    // 4. Loading State (Optional: lets the UI show a spinner when syncing)
     val listingsLoadingState = MutableLiveData<LoadingState>()
 
     enum class LoadingState {
@@ -49,6 +48,7 @@ class Model private constructor() {
                 val listings = result.toObjects(Listing::class.java)
 
                 executor.execute {
+                    database.listingDao().deleteAll()
                     database.listingDao().insertAll(listings)
 
                     listingsLoadingState.postValue(LoadingState.LOADED)
@@ -87,7 +87,8 @@ class Model private constructor() {
         val data = baos.toByteArray()
 
         val uploadTask = imageRef.putBytes(data)
-        uploadTask.addOnFailureListener {
+        uploadTask.addOnFailureListener { exception ->
+            android.util.Log.e("UPLOAD_ERROR", "Upload failed for $name", exception)
             callback(null)
         }.addOnSuccessListener { taskSnapshot ->
             imageRef.downloadUrl.addOnSuccessListener { uri ->
