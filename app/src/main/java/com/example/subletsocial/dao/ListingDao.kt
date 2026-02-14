@@ -26,6 +26,9 @@ interface ListingDao {
     @Delete
     fun delete(listing: Listing)
 
+    @Query("DELETE FROM listings WHERE id = :listingId")
+    fun deleteById(listingId: String)
+
     @Query("DELETE FROM listings")
     fun deleteAll()
 }
