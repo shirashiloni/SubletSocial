@@ -167,6 +167,11 @@ class Model private constructor() {
     }
 
     fun uploadImages(bitmaps: List<Bitmap>, name: String, callback: (List<String>) -> Unit) {
+        if (bitmaps.isEmpty()) {
+            callback(emptyList())
+            return
+        }
+
         val uploadedUrls = mutableListOf<String>()
         var count = 0
 

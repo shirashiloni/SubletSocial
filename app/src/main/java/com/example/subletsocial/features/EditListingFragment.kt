@@ -74,17 +74,18 @@ class EditListingFragment : Fragment() {
         }
 
         Model.shared.getListingById(listingId).observe(viewLifecycleOwner) { listing ->
-            listing?.let {
-                binding.etTitle.setText(it.title)
-                binding.etPrice.setText(it.price.toString())
-                binding.etDescription.setText(it.description)
-                binding.etLocation.setText(it.location)
-                binding.etBedrooms.setText(it.bedrooms.toString())
-                binding.etBathrooms.setText(it.bathrooms.toString())
-                binding.etStartDate.setText(it.startDate)
-                binding.etEndDate.setText(it.endDate)
+            listing?.let { currentListing ->
+                binding.etTitle.setText(currentListing.title)
+                binding.etPrice.setText(currentListing.price.toString())
+                binding.etDescription.setText(currentListing.description)
+                binding.etLocation.setText(currentListing.location)
+                binding.etBedrooms.setText(currentListing.bedrooms.toString())
+                binding.etBathrooms.setText(currentListing.bathrooms.toString())
+                binding.etStartDate.setText(currentListing.startDate)
+                binding.etEndDate.setText(currentListing.endDate)
 
-                existingImageUrls.addAll(it.imageUrls)
+                existingImageUrls.clear()
+                existingImageUrls.addAll(currentListing.imageUrls)
                 binding.llImagesContainer.removeAllViews()
                 for (imageUrl in existingImageUrls) {
                     addThumbnailToView(null, imageUrl)
@@ -92,15 +93,14 @@ class EditListingFragment : Fragment() {
 
                 for (i in 0 until binding.cgAmenities.childCount) {
                     val chip = binding.cgAmenities.getChildAt(i) as Chip
-                    if (it.amenities.contains(chip.text.toString())) {
+                    if (currentListing.amenities.contains(chip.text.toString())) {
                         chip.isChecked = true
                     }
                 }
 
-                val listing = it
                 binding.btnPost.text = "Save Changes"
                 binding.btnPost.setOnClickListener {
-                    updateListing(listing)
+                    updateListing(currentListing)
                 }
             }
         }
@@ -156,6 +156,9 @@ class EditListingFragment : Fragment() {
     }
 
     private fun updateListing(originalListing: Listing) {
+        binding.progressBar.visibility = View.VISIBLE
+        binding.btnPost.isEnabled = false
+
         Model.shared.uploadImages(selectedBitmaps, originalListing.id) { newImageUrls ->
             val allImageUrls = existingImageUrls + newImageUrls
 
@@ -173,7 +176,10 @@ class EditListingFragment : Fragment() {
             )
 
             Model.shared.updateListing(updatedListing) {
-                findNavController().popBackStack()
+                if (_binding != null) {
+                    binding.progressBar.visibility = View.GONE
+                    findNavController().popBackStack()
+                }
             }
         }
     }
