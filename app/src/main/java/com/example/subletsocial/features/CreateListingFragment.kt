@@ -1,10 +1,10 @@
 package com.example.subletsocial.features
 
 import android.app.AlertDialog
-import android.app.DatePickerDialog
-import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.app.DatePickerDialog
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -17,16 +17,9 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.example.subletsocial.databinding.FragmentCreateListingBinding
 import com.example.subletsocial.model.Listing
-import com.example.subletsocial.model.LocationData
 import com.example.subletsocial.model.Model
-import com.google.android.gms.common.api.Status
-import com.google.android.libraries.places.api.Places
-import com.google.android.libraries.places.api.model.Place
-import com.google.android.libraries.places.widget.AutocompleteSupportFragment
-import com.google.android.libraries.places.widget.listener.PlaceSelectionListener
 import com.google.android.material.chip.Chip
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.GeoPoint
 import java.util.Calendar
 import java.util.UUID
 
@@ -36,7 +29,6 @@ class CreateListingFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val selectedBitmaps = mutableListOf<Bitmap>()
-    private var selectedPlace: Place? = null
 
     private val galleryLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
@@ -71,7 +63,6 @@ class CreateListingFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        setupPlacesAutocomplete()
         setupDatePickers()
 
         binding.cvImageUpload.setOnClickListener {
@@ -82,15 +73,16 @@ class CreateListingFragment : Fragment() {
             val title = binding.etTitle.text.toString()
             val priceStr = binding.etPrice.text.toString()
             val description = binding.etDescription.text.toString()
+            val location = binding.etLocation.text.toString()
             val bedroomsStr = binding.etBedrooms.text.toString()
             val bathroomsStr = binding.etBathrooms.text.toString()
             val startDate = binding.etStartDate.text.toString()
             val endDate = binding.etEndDate.text.toString()
 
             if (title.isEmpty() || priceStr.isEmpty() || description.isEmpty() ||
-                selectedPlace == null || bedroomsStr.isEmpty() || bathroomsStr.isEmpty() ||
+                location.isEmpty() || bedroomsStr.isEmpty() || bathroomsStr.isEmpty() ||
                 startDate.isEmpty() || endDate.isEmpty()) {
-                Toast.makeText(context, "Please fill all fields, including location", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
@@ -107,28 +99,6 @@ class CreateListingFragment : Fragment() {
                 saveListingToDb(listingId, emptyList(), title, priceStr)
             }
         }
-    }
-
-    private fun setupPlacesAutocomplete() {
-        if (!Places.isInitialized()) {
-            Places.initialize(requireContext(), "AIzaSyABEzVUmH1uYWIsNr2x75G_spY3kmTvIC0")
-        }
-
-        val autocompleteFragment = childFragmentManager.findFragmentById(com.example.subletsocial.R.id.autocomplete_fragment)
-                as AutocompleteSupportFragment
-
-        autocompleteFragment.setPlaceFields(listOf(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG, Place.Field.ADDRESS))
-
-        autocompleteFragment.setOnPlaceSelectedListener(object : PlaceSelectionListener {
-            override fun onPlaceSelected(place: Place) {
-                selectedPlace = place
-                binding.etLocation.setText(place.address ?: place.name)
-            }
-
-            override fun onError(status: Status) {
-                Toast.makeText(requireContext(), "Error selecting location", Toast.LENGTH_SHORT).show()
-            }
-        })
     }
 
     private fun showImageSourceDialog() {
@@ -162,10 +132,6 @@ class CreateListingFragment : Fragment() {
             if (chip.isChecked) selectedAmenities.add(chip.text.toString())
         }
 
-        val latLng = selectedPlace?.latLng
-        val geoPoint = latLng?.let { GeoPoint(it.latitude, it.longitude) }
-        val geohash = latLng?.let { generateGeohash(it.latitude, it.longitude) }
-
         val listing = Listing(
             id = id,
             title = title,
@@ -173,8 +139,7 @@ class CreateListingFragment : Fragment() {
             price = priceStr.toIntOrNull() ?: 0,
             description = binding.etDescription.text.toString(),
             ownerId = FirebaseAuth.getInstance().currentUser?.uid ?: "",
-            locationName = binding.etLocation.text.toString(),
-            locationData = LocationData(geoPoint, geohash),
+            location = binding.etLocation.text.toString(),
             bedrooms = binding.etBedrooms.text.toString().toIntOrNull() ?: 0,
             bathrooms = binding.etBathrooms.text.toString().toIntOrNull() ?: 0,
             startDate = binding.etStartDate.text.toString(),
@@ -189,46 +154,6 @@ class CreateListingFragment : Fragment() {
                 findNavController().popBackStack()
             }
         }
-    }
-
-    private fun generateGeohash(latitude: Double, longitude: Double): String {
-        val characters = "0123456789bcdefghjkmnpqrstuvwxyz"
-        val latRange = doubleArrayOf(-90.0, 90.0)
-        val lonRange = doubleArrayOf(-180.0, 180.0)
-        var isEven = true
-        var bit = 0
-        var ch = 0
-        val geohash = StringBuilder()
-
-        while (geohash.length < 9) {
-            if (isEven) {
-                val mid = (lonRange[0] + lonRange[1]) / 2
-                if (longitude > mid) {
-                    ch = ch or (1 shl (4 - bit))
-                    lonRange[0] = mid
-                } else {
-                    lonRange[1] = mid
-                }
-            } else {
-                val mid = (latRange[0] + latRange[1]) / 2
-                if (latitude > mid) {
-                    ch = ch or (1 shl (4 - bit))
-                    latRange[0] = mid
-                } else {
-                    latRange[1] = mid
-                }
-            }
-
-            isEven = !isEven
-            if (bit < 4) {
-                bit++
-            } else {
-                geohash.append(characters[ch])
-                bit = 0
-                ch = 0
-            }
-        }
-        return geohash.toString()
     }
 
     private fun setupDatePickers() {

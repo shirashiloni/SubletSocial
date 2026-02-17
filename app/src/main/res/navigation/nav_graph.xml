@@ -25,10 +25,6 @@
             android:id="@+id/action_feedFragment_to_createListingFragment"
             app:destination="@id/createListingFragment" />
 
-        <action
-            android:id="@+id/action_feedFragment_to_singlePostFragment"
-            app:destination="@id/singlePostFragment" />
-
     </fragment>
 
     <fragment
