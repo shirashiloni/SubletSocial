@@ -78,6 +78,30 @@ class SinglePostFragment : Fragment() {
                 } else {
                     binding.ivPostOptions.visibility = View.GONE
                 }
+
+                Model.shared.getUserData(it.ownerId).observe(viewLifecycleOwner) { user ->
+                    if (user != null) {
+                        binding.tvHostName.text = user.name
+                        binding.tvHostBio.text =
+                            user.bio
+                        binding.tvHostStats.text =
+                            "${0} followers • ${0} following"
+
+                        if (user.avatarUrl.isNotEmpty()) {
+                            com.squareup.picasso.Picasso.get()
+                                .load(user.avatarUrl)
+                                .placeholder(R.drawable.ic_profile_placeholder)
+                                .into(binding.ivHostAvatar)
+                        }
+
+                        binding.cvHostProfile.setOnClickListener {
+                            val action = SinglePostFragmentDirections
+                                .actionSinglePostFragmentToProfileFragment(user.id)
+                            findNavController().navigate(action)
+                        }
+                    }
+                }
+
             }
         }
     }

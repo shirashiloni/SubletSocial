@@ -3,6 +3,7 @@ package com.example.subletsocial.features
 import android.annotation.SuppressLint
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.navigation.findNavController
 import androidx.recyclerview.widget.RecyclerView
 import com.example.subletsocial.databinding.ListingListItemBinding
 import com.example.subletsocial.model.Listing
@@ -35,6 +36,12 @@ class ListingsAdapter(private var listings: List<Listing>) :
             Picasso.get().load(listing.imageUrls[0]).fit().centerCrop().into(holder.binding.ivListingImage)
         } else {
             holder.binding.ivListingImage.setImageResource(android.R.drawable.ic_menu_gallery)
+        }
+
+        holder.binding.root.setOnClickListener {
+            val action = FeedFragmentDirections
+                .actionFeedFragmentToSinglePostFragment(listing.id)
+            holder.binding.root.findNavController().navigate(action)
         }
     }
 

@@ -20,11 +20,12 @@
         android:name="com.example.subletsocial.features.FeedFragment"
         android:label="fragment_feed"
         tools:layout="@layout/fragment_feed">
-
+        <action
+            android:id="@+id/action_feedFragment_to_singlePostFragment"
+            app:destination="@id/singlePostFragment" />
         <action
             android:id="@+id/action_feedFragment_to_createListingFragment"
             app:destination="@id/createListingFragment" />
-
     </fragment>
 
     <fragment
@@ -44,6 +45,11 @@
         android:name="com.example.subletsocial.features.ProfileFragment"
         android:label="Profile"
         tools:layout="@layout/fragment_profile">
+        <argument
+            android:name="userId"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null"/>
         <action
             android:id="@+id/action_profileFragment_to_singlePostFragment"
             app:destination="@id/singlePostFragment" />
@@ -60,6 +66,9 @@
         <action
             android:id="@+id/action_singlePostFragment_to_editListingFragment"
             app:destination="@id/editListingFragment" />
+        <action
+            android:id="@+id/action_singlePostFragment_to_profileFragment"
+            app:destination="@id/profileFragment" />
     </fragment>
 
     <fragment
@@ -71,5 +80,8 @@
             android:name="listingId"
             app:argType="string" />
     </fragment>
+    <argument
+        android:name="userId"
+        app:argType="string" />
 
 </navigation>
