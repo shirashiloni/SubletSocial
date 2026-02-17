@@ -1,6 +1,7 @@
 package com.example.subletsocial.features
 
 import android.app.AlertDialog
+import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -26,6 +27,8 @@ class ProfileFragment : Fragment() {
 
     private lateinit var listingsAdapter: ProfileListingsAdapter
     private var profileUserId: String? = null
+
+    private var isFollowing = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -75,11 +78,38 @@ class ProfileFragment : Fragment() {
             adapter = listingsAdapter
         }
 
+        if (currentLoggedInId == userIdToDisplay) {
+            binding.btnFollow.visibility = View.GONE
+        } else if (currentLoggedInId != null){
+            binding.btnFollow.visibility = View.VISIBLE
+
+            Model.shared.checkIfFollowing(currentLoggedInId, userIdToDisplay)
+                .observe(viewLifecycleOwner) { isFollowingNow ->
+                    isFollowing = isFollowingNow
+                    updateFollowButtonState(isFollowing)
+                }
+
+            binding.btnFollow.setOnClickListener {
+                binding.btnFollow.isEnabled = false
+
+                Model.shared.toggleFollow(currentLoggedInId, userIdToDisplay, isFollowing) {
+                    binding.btnFollow.isEnabled = true
+                }
+
+                val currentText = binding.tvNumFollowers.text.toString()
+                val currentCount = currentText.filter { it.isDigit() }.toIntOrNull() ?: 0
+                val newCount = if (isFollowing) currentCount - 1 else currentCount + 1
+                binding.tvNumFollowers.text = "$newCount Followers"
+            }
+        }
+
         Model.shared.getUserData(userIdToDisplay).observe(viewLifecycleOwner) { user ->
             if (user != null) {
                 binding.tvProfileName.text = user.name
                 binding.tvBio.text = if (user.bio.isNotEmpty()) user.bio else "No bio available."
 
+                binding.tvNumFollowers.text = "${user.followersCount} Followers"
+                binding.tvNumFollowing.text = "${user.followingCount} Following"
 
                 if (user.avatarUrl.isNotEmpty()) {
                     Picasso.get()
@@ -119,6 +149,7 @@ class ProfileFragment : Fragment() {
             .show()
     }
 
+
     private fun updateBio(newBio: String) {
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
 
@@ -127,6 +158,16 @@ class ProfileFragment : Fragment() {
                 binding.tvBio.text = newBio
                 Toast.makeText(context, "Bio updated!", Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+
+    private fun updateFollowButtonState(following: Boolean) {
+        if (following) {
+            binding.btnFollow.text = "Following"
+            binding.btnFollow.setBackgroundColor(Color.GRAY)
+        } else {
+            binding.btnFollow.text = "Follow"
+            binding.btnFollow.setBackgroundColor(Color.parseColor("#00897B"))
         }
     }
 
