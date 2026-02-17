@@ -2,14 +2,18 @@ package com.example.subletsocial.features
 
 import android.annotation.SuppressLint
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
+import androidx.lifecycle.LifecycleOwner
 import androidx.navigation.findNavController
 import androidx.recyclerview.widget.RecyclerView
 import com.example.subletsocial.databinding.ListingListItemBinding
 import com.example.subletsocial.model.Listing
+import com.example.subletsocial.model.Model
+import com.google.firebase.auth.FirebaseAuth
 import com.squareup.picasso.Picasso
 
-class ListingsAdapter(private var listings: List<Listing>) :
+class ListingsAdapter(private var listings: List<Listing>, private val lifecycleOwner: LifecycleOwner) :
     RecyclerView.Adapter<ListingsAdapter.ListingViewHolder>() {
 
     class ListingViewHolder(val binding: ListingListItemBinding) :
@@ -42,6 +46,19 @@ class ListingsAdapter(private var listings: List<Listing>) :
             val action = FeedFragmentDirections
                 .actionFeedFragmentToSinglePostFragment(listing.id)
             holder.binding.root.findNavController().navigate(action)
+        }
+
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+
+        if(currentUserId == null || currentUserId == listing.ownerId) return
+
+        Model.shared.getMutualConnectionsUsersIds(currentUserId, listing.ownerId).observe(lifecycleOwner) { ids ->
+            if (ids.isNotEmpty()) {
+                holder.binding.cvMutualTag.visibility = View.VISIBLE
+                holder.binding.tvMutualCount.text = "${ids.size} mutual"
+            } else {
+                holder.binding.cvMutualTag.visibility = View.GONE
+            }
         }
     }
 

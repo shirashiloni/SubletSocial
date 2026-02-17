@@ -33,7 +33,7 @@ class FeedFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        adapter = ListingsAdapter(listOf())
+        adapter = ListingsAdapter(listOf(), viewLifecycleOwner)
         binding.rvListingsFeed.layoutManager = LinearLayoutManager(context)
         binding.rvListingsFeed.adapter = adapter
 

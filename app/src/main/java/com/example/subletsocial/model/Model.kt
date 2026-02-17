@@ -238,4 +238,41 @@ class Model private constructor() {
 
         return result
     }
+
+    fun getMutualConnectionsUsersIds(currentUserId: String, hostId: String): LiveData<List<String>> {
+        val result = MutableLiveData<List<String>>()
+
+        firestore.collection("follows").whereEqualTo("followerId", currentUserId).get()
+            .addOnSuccessListener { myFollowingSnapshot ->
+                val myFollowingIds = myFollowingSnapshot.documents.map { it.getString("followedId")!! }.toSet()
+
+                firestore.collection("follows").whereEqualTo("followedId", hostId).get()
+                    .addOnSuccessListener { hostFollowersSnapshot ->
+                        val hostFollowerIds = hostFollowersSnapshot.documents.map { it.getString("followerId")!! }.toSet()
+
+                        val mutualIds = myFollowingIds.intersect(hostFollowerIds).toList()
+                        result.value = mutualIds
+                    }
+            }
+        return result
+    }
+
+    fun getMutualConnectionsUsers(currentUserId: String, hostId: String): LiveData<List<User>> {
+        val result = MutableLiveData<List<User>>()
+
+        getMutualConnectionsUsersIds(currentUserId, hostId)
+            .observeForever { mutualIds ->
+                if (mutualIds.isEmpty()) {
+                    result.value = emptyList()
+                } else {
+                    firestore.collection("users").whereIn("id", mutualIds.take(10)).get()
+                        .addOnSuccessListener { usersSnapshot ->
+                            val users = usersSnapshot.toObjects(User::class.java)
+                            result.value = users
+                        }
+                }
+            }
+
+        return result
+    }
 }
