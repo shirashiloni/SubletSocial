@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "452957267785",
+    "project_id": "subletsocial",
+    "storage_bucket": "subletsocial.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:452957267785:android:ecba87fe9dcbabc9e3dc98",
+        "android_client_info": {
+          "package_name": "com.example.subletsocial"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA_mlVj8E9uJnz0-Oic4vjYXk_qO3E-PN8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

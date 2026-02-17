@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/loginFragment"> <fragment
+    android:id="@+id/loginFragment"
+    android:name="com.example.subletsocial.features.LoginFragment"
+    android:label="Login"
+    tools:layout="@layout/fragment_login">
+    <action
+        android:id="@+id/action_loginFragment_to_feedFragment"
+        app:destination="@id/feedFragment"
+        app:popUpTo="@id/loginFragment"
+        app:popUpToInclusive="true" />
+</fragment>
+
+    <fragment
+        android:id="@+id/feedFragment"
+        android:name="com.example.subletsocial.features.FeedFragment"
+        android:label="Home"
+        tools:layout="@layout/fragment_feed" />
+
+    <fragment
+        android:id="@+id/mapFragment"
+        android:name="com.example.subletsocial.features.MapFragment"
+        android:label="Map"
+        tools:layout="@layout/fragment_map" />
+
+    <fragment
+        android:id="@+id/createListingFragment"
+        android:name="com.example.subletsocial.features.CreateListingFragment"
+        android:label="Post"
+        tools:layout="@layout/fragment_create_listing" />
+
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="com.example.subletsocial.features.ProfileFragment"
+        android:label="Profile"
+        tools:layout="@layout/fragment_profile" />
+
+</navigation>
