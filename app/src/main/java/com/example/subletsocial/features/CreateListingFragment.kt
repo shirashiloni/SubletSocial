@@ -1,60 +1,188 @@
 package com.example.subletsocial.features
 
+import android.app.AlertDialog
+import android.graphics.BitmapFactory
+import android.net.Uri
+import android.app.DatePickerDialog
+import android.graphics.Bitmap
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import com.example.subletsocial.R
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
+import com.example.subletsocial.databinding.FragmentCreateListingBinding
+import com.example.subletsocial.model.Listing
+import com.example.subletsocial.model.Model
+import com.google.android.material.chip.Chip
+import com.google.firebase.auth.FirebaseAuth
+import java.util.Calendar
+import java.util.UUID
 
-// TODO: Rename parameter arguments, choose names that match
-// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-private const val ARG_PARAM1 = "param1"
-private const val ARG_PARAM2 = "param2"
-
-/**
- * A simple [Fragment] subclass.
- * Use the [CreateListingFragment.newInstance] factory method to
- * create an instance of this fragment.
- */
 class CreateListingFragment : Fragment() {
-    // TODO: Rename and change types of parameters
-    private var param1: String? = null
-    private var param2: String? = null
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        arguments?.let {
-            param1 = it.getString(ARG_PARAM1)
-            param2 = it.getString(ARG_PARAM2)
+    private var _binding: FragmentCreateListingBinding? = null
+    private val binding get() = _binding!!
+
+    private val selectedBitmaps = mutableListOf<Bitmap>()
+
+    private val galleryLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let {
+            try {
+                val inputStream = requireContext().contentResolver.openInputStream(it)
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+                selectedBitmaps.add(bitmap)
+                addThumbnailToView(bitmap)
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Failed to load image", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private val cameraLauncher = registerForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
+        if (bitmap != null) {
+            selectedBitmaps.add(bitmap)
+            addThumbnailToView(bitmap)
+        } else {
+            Toast.makeText(requireContext(), "Failed to capture photo", Toast.LENGTH_SHORT).show()
         }
     }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_create_listing, container, false)
+    ): View {
+        _binding = FragmentCreateListingBinding.inflate(inflater, container, false)
+        return binding.root
     }
 
-    companion object {
-        /**
-         * Use this factory method to create a new instance of
-         * this fragment using the provided parameters.
-         *
-         * @param param1 Parameter 1.
-         * @param param2 Parameter 2.
-         * @return A new instance of fragment CreateListingFragment.
-         */
-        // TODO: Rename and change types and number of parameters
-        @JvmStatic
-        fun newInstance(param1: String, param2: String) =
-            CreateListingFragment().apply {
-                arguments = Bundle().apply {
-                    putString(ARG_PARAM1, param1)
-                    putString(ARG_PARAM2, param2)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        setupDatePickers()
+
+        binding.cvImageUpload.setOnClickListener {
+            showImageSourceDialog()
+        }
+
+        binding.btnPost.setOnClickListener {
+            val title = binding.etTitle.text.toString()
+            val priceStr = binding.etPrice.text.toString()
+            val description = binding.etDescription.text.toString()
+            val location = binding.etLocation.text.toString()
+            val bedroomsStr = binding.etBedrooms.text.toString()
+            val bathroomsStr = binding.etBathrooms.text.toString()
+            val startDate = binding.etStartDate.text.toString()
+            val endDate = binding.etEndDate.text.toString()
+
+            if (title.isEmpty() || priceStr.isEmpty() || description.isEmpty() ||
+                location.isEmpty() || bedroomsStr.isEmpty() || bathroomsStr.isEmpty() ||
+                startDate.isEmpty() || endDate.isEmpty()) {
+                Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            binding.progressBar.visibility = View.VISIBLE
+            binding.btnPost.isEnabled = false
+
+            val listingId = UUID.randomUUID().toString()
+
+            if (selectedBitmaps.isNotEmpty()) {
+                Model.shared.uploadImages(selectedBitmaps, listingId) { imageUrls ->
+                    saveListingToDb(listingId, imageUrls, title, priceStr)
+                }
+            } else {
+                saveListingToDb(listingId, emptyList(), title, priceStr)
+            }
+        }
+    }
+
+    private fun showImageSourceDialog() {
+        val options = arrayOf("Take Photo", "Choose from Gallery")
+        AlertDialog.Builder(requireContext())
+            .setTitle("Add Photo")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> cameraLauncher.launch(null)
+                    1 -> galleryLauncher.launch("image/*")
                 }
             }
+            .show()
+    }
+
+    private fun addThumbnailToView(bitmap: Bitmap) {
+        val imageView = ImageView(requireContext())
+        val params = LinearLayout.LayoutParams(300, 300)
+        params.setMargins(16, 0, 16, 0)
+        imageView.layoutParams = params
+        imageView.setImageBitmap(bitmap)
+        imageView.scaleType = ImageView.ScaleType.CENTER_CROP
+
+        binding.llImagesContainer.addView(imageView)
+    }
+
+    private fun saveListingToDb(id: String, imageUrls: List<String>, title: String, priceStr: String) {
+        val selectedAmenities = mutableListOf<String>()
+        for (i in 0 until binding.cgAmenities.childCount) {
+            val chip = binding.cgAmenities.getChildAt(i) as Chip
+            if (chip.isChecked) selectedAmenities.add(chip.text.toString())
+        }
+
+        val listing = Listing(
+            id = id,
+            title = title,
+            imageUrls = imageUrls,
+            price = priceStr.toIntOrNull() ?: 0,
+            description = binding.etDescription.text.toString(),
+            ownerId = FirebaseAuth.getInstance().currentUser?.uid ?: "",
+            location = binding.etLocation.text.toString(),
+            bedrooms = binding.etBedrooms.text.toString().toIntOrNull() ?: 0,
+            bathrooms = binding.etBathrooms.text.toString().toIntOrNull() ?: 0,
+            startDate = binding.etStartDate.text.toString(),
+            endDate = binding.etEndDate.text.toString(),
+            amenities = selectedAmenities,
+            lastUpdated = System.currentTimeMillis()
+        )
+
+        Model.shared.addListing(listing) {
+            if (_binding != null) {
+                binding.progressBar.visibility = View.GONE
+                findNavController().popBackStack()
+            }
+        }
+    }
+
+    private fun setupDatePickers() {
+        binding.etStartDate.setOnClickListener {
+            showDatePickerDialog { date -> binding.etStartDate.setText(date) }
+        }
+        binding.etEndDate.setOnClickListener {
+            showDatePickerDialog { date -> binding.etEndDate.setText(date) }
+        }
+    }
+
+    private fun showDatePickerDialog(onDateSelected: (String) -> Unit) {
+        val calendar = Calendar.getInstance()
+        val year = calendar.get(Calendar.YEAR)
+        val month = calendar.get(Calendar.MONTH)
+        val day = calendar.get(Calendar.DAY_OF_MONTH)
+
+        DatePickerDialog(
+            requireContext(),
+            { _, selectedYear, selectedMonth, selectedDay ->
+                val formattedDate = "$selectedDay/${selectedMonth + 1}/$selectedYear"
+                onDateSelected(formattedDate)
+            },
+            year, month, day
+        ).show()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }
