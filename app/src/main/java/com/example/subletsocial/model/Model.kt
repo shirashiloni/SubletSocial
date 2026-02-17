@@ -76,6 +76,75 @@ class Model private constructor() {
             }
     }
 
+    fun deleteListing(listingId: String, callback: () -> Unit) {
+        firestore.collection("listings").document(listingId)
+            .delete()
+            .addOnSuccessListener {
+                executor.execute {
+                    database.listingDao().deleteById(listingId)
+                    mainHandler.post {
+                        callback()
+                    }
+                }
+            }
+    }
+
+    fun updateListing(listing: Listing, callback: () -> Unit) {
+        firestore.collection("listings").document(listing.id)
+            .set(listing)
+            .addOnSuccessListener {
+                executor.execute {
+                    database.listingDao().insert(listing)
+                    mainHandler.post {
+                        callback()
+                    }
+                }
+            }
+    }
+
+    fun getListingsByOwner(userId: String): LiveData<List<Listing>> {
+        val liveData = MutableLiveData<List<Listing>>()
+        firestore.collection("listings")
+            .whereEqualTo("ownerId", userId)
+            .get()
+            .addOnSuccessListener { result ->
+                val listings = result.toObjects(Listing::class.java)
+                liveData.postValue(listings)
+            }
+            .addOnFailureListener {
+                // Handle error
+            }
+        return liveData
+    }
+
+    fun getListingById(listingId: String): LiveData<Listing> {
+        val liveData = MutableLiveData<Listing>()
+        firestore.collection("listings").document(listingId).get()
+            .addOnSuccessListener { document ->
+                val listing = document.toObject(Listing::class.java)
+                liveData.postValue(listing)
+            }
+        return liveData
+    }
+
+    fun getUserData(userId: String): LiveData<User> {
+        val liveData = MutableLiveData<User>()
+        firestore.collection("users").document(userId).get()
+            .addOnSuccessListener { document ->
+                val user = document.toObject(User::class.java)
+                liveData.postValue(user)
+            }
+        return liveData
+    }
+
+    fun updateUserBio(userId: String, bio: String, callback: () -> Unit) {
+        firestore.collection("users").document(userId)
+            .update("bio", bio)
+            .addOnSuccessListener {
+                callback()
+            }
+    }
+
     private val storage = FirebaseStorage.getInstance()
 
     fun uploadImage(image: Bitmap, name: String, callback: (String?) -> Unit) {
@@ -98,6 +167,11 @@ class Model private constructor() {
     }
 
     fun uploadImages(bitmaps: List<Bitmap>, name: String, callback: (List<String>) -> Unit) {
+        if (bitmaps.isEmpty()) {
+            callback(emptyList())
+            return
+        }
+
         val uploadedUrls = mutableListOf<String>()
         var count = 0
 
