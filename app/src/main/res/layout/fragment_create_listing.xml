@@ -99,23 +99,24 @@
                 android:layout_height="wrap_content" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilLocation"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/autocomplete_fragment"
+            android:name="com.google.android.libraries.places.widget.AutocompleteSupportFragment"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:hint="Location"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tilTitle"
-            app:startIconDrawable="@android:drawable/ic_menu_mylocation">
+            app:layout_constraintTop_toBottomOf="@id/tilTitle" />
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etLocation"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
-        </com.google.android.material.textfield.TextInputLayout>
+        <!-- Keep hidden etLocation to store selected address -->
+        <EditText
+            android:id="@+id/etLocation"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/autocomplete_fragment" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilBedrooms"
@@ -128,7 +129,7 @@
             app:layout_constraintEnd_toStartOf="@+id/tilBathrooms"
             app:layout_constraintHorizontal_bias="0.5"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tilLocation">
+            app:layout_constraintTop_toBottomOf="@id/autocomplete_fragment">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etBedrooms"
@@ -148,7 +149,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.5"
             app:layout_constraintStart_toEndOf="@+id/tilBedrooms"
-            app:layout_constraintTop_toBottomOf="@id/tilLocation">
+            app:layout_constraintTop_toBottomOf="@id/autocomplete_fragment">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etBathrooms"

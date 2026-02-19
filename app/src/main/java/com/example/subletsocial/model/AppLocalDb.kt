@@ -8,7 +8,7 @@ import com.example.subletsocial.base.MyApplication
 import com.example.subletsocial.dao.ListingDao
 
 @TypeConverters(ListingTypeConverters::class)
-@Database(entities = [Listing::class], version = 1)
+@Database(entities = [Listing::class], version = 2)
 abstract class AppLocalDbRepository : RoomDatabase() {
     abstract fun listingDao(): ListingDao
 }
