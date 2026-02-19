@@ -10,6 +10,7 @@ import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.GridLayoutManager
 import com.example.subletsocial.R
@@ -50,6 +51,11 @@ class ProfileFragment : Fragment() {
         } else {
             setupProfileView(profileUserId!!, currentUserId)
         }
+
+        binding.ivLogout.setOnClickListener {
+            FirebaseAuth.getInstance().signOut()
+            findNavController().navigate(R.id.loginFragment)
+        }
     }
 
     private fun setupGuestView() {
@@ -65,9 +71,11 @@ class ProfileFragment : Fragment() {
 
         if (isOwnProfile) {
             binding.ivEditBio.visibility = View.VISIBLE
+            binding.ivLogout.visibility = View.VISIBLE
             binding.ivEditBio.setOnClickListener { showEditBioDialog() }
         } else {
             binding.ivEditBio.visibility = View.GONE
+            binding.ivLogout.visibility = View.GONE
         }
 
         binding.rvMyListings.visibility = View.VISIBLE
