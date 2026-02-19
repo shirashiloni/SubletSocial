@@ -59,7 +59,7 @@ class SinglePostFragment : Fragment() {
                 binding.tvPostTitle.text = it.title
                 binding.tvPostPrice.text = "$${it.price}"
                 binding.tvPostDescription.text = it.description
-                binding.tvPostLocation.text = it.location
+                binding.tvPostLocation.text = it.locationName
                 binding.tvPostDates.text = "${it.startDate} - ${it.endDate}"
                 binding.tvPostRooms.text = "${it.bedrooms} Bedrooms | ${it.bathrooms} Bathrooms"
 

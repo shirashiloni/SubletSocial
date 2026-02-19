@@ -69,7 +69,7 @@ class FeedFragment : Fragment() {
 
             val filteredList = allListings.filter { listing ->
                 listing.title.lowercase().contains(lowerCaseQuery) ||
-                        listing.location.lowercase().contains(lowerCaseQuery)
+                        listing.locationName.lowercase().contains(lowerCaseQuery)
             }
 
             adapter.updateListings(filteredList)

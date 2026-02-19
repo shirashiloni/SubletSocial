@@ -78,7 +78,7 @@ class EditListingFragment : Fragment() {
                 binding.etTitle.setText(currentListing.title)
                 binding.etPrice.setText(currentListing.price.toString())
                 binding.etDescription.setText(currentListing.description)
-                binding.etLocation.setText(currentListing.location)
+                binding.etLocation.setText(currentListing.locationName)
                 binding.etBedrooms.setText(currentListing.bedrooms.toString())
                 binding.etBathrooms.setText(currentListing.bathrooms.toString())
                 binding.etStartDate.setText(currentListing.startDate)
@@ -166,7 +166,7 @@ class EditListingFragment : Fragment() {
                 title = binding.etTitle.text.toString(),
                 price = binding.etPrice.text.toString().toIntOrNull() ?: 0,
                 description = binding.etDescription.text.toString(),
-                location = binding.etLocation.text.toString(),
+                locationName = binding.etLocation.text.toString(),
                 bedrooms = binding.etBedrooms.text.toString().toIntOrNull() ?: 0,
                 bathrooms = binding.etBathrooms.text.toString().toIntOrNull() ?: 0,
                 startDate = binding.etStartDate.text.toString(),

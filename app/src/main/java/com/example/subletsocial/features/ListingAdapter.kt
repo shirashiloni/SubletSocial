@@ -23,9 +23,8 @@ class ListingsAdapter(private var listings: List<Listing>) :
 
     override fun onBindViewHolder(holder: ListingViewHolder, position: Int) {
         val listing = listings[position]
-
         holder.binding.tvListingTitle.text = listing.title
-        holder.binding.tvListingLocation.text = listing.location
+        holder.binding.tvListingLocation.text = listing.locationName
         holder.binding.tvListingPrice.text = "$${listing.price}"
 
         holder.binding.tvListingDates.text = "${listing.startDate} - ${listing.endDate}"
