@@ -33,7 +33,7 @@ class FeedFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        adapter = ListingsAdapter(listOf())
+        adapter = ListingsAdapter(listOf(), viewLifecycleOwner)
         binding.rvListingsFeed.layoutManager = LinearLayoutManager(context)
         binding.rvListingsFeed.adapter = adapter
 
@@ -69,7 +69,7 @@ class FeedFragment : Fragment() {
 
             val filteredList = allListings.filter { listing ->
                 listing.title.lowercase().contains(lowerCaseQuery) ||
-                        listing.location.lowercase().contains(lowerCaseQuery)
+                        listing.locationName.lowercase().contains(lowerCaseQuery)
             }
 
             adapter.updateListings(filteredList)

@@ -25,8 +25,14 @@ class ProfileListingsAdapter(private var listings: List<Listing>) :
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val listing = listings[position]
-        if (listing.imageUrls.isNotEmpty()) {
-            Picasso.get().load(listing.imageUrls[0]).into(holder.listingImage)
+        if (listing.imageUrls.isNotEmpty() && listing.imageUrls[0].isNotEmpty()) {
+            Picasso.get()
+                .load(listing.imageUrls[0])
+                .placeholder(android.R.drawable.ic_menu_gallery)
+                .error(android.R.drawable.ic_menu_gallery)
+                .into(holder.listingImage)
+        } else {
+            holder.listingImage.setImageResource(android.R.drawable.ic_menu_gallery)
         }
 
         holder.itemView.setOnClickListener {
