@@ -13,8 +13,8 @@ import com.example.subletsocial.model.Model
 import com.google.firebase.auth.FirebaseAuth
 import com.squareup.picasso.Picasso
 
-class ListingsAdapter(private var listings: List<Listing>, private val lifecycleOwner: LifecycleOwner) :
-    RecyclerView.Adapter<ListingsAdapter.ListingViewHolder>() {
+class ListingAdapter(private var listings: List<Listing>, private val onItemClicked: (String) -> Unit) :
+    RecyclerView.Adapter<ListingAdapter.ListingViewHolder>() {
 
     class ListingViewHolder(val binding: ListingListItemBinding) :
         RecyclerView.ViewHolder(binding.root)
@@ -42,23 +42,22 @@ class ListingsAdapter(private var listings: List<Listing>, private val lifecycle
         }
 
         holder.binding.root.setOnClickListener {
-            val action = FeedFragmentDirections
-                .actionFeedFragmentToSinglePostFragment(listing.id)
-            holder.binding.root.findNavController().navigate(action)
+            onItemClicked(listing.id)
         }
 
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
 
         if(currentUserId == null || currentUserId == listing.ownerId) return
 
-        Model.shared.getMutualConnectionsUsersIds(currentUserId, listing.ownerId).observe(lifecycleOwner) { ids ->
-            if (ids.isNotEmpty()) {
-                holder.binding.cvMutualTag.visibility = View.VISIBLE
-                holder.binding.tvMutualCount.text = "${ids.size} mutual"
-            } else {
-                holder.binding.cvMutualTag.visibility = View.GONE
-            }
-        }
+        // The lifecycle owner would need to be passed in to use this feature
+        // Model.shared.getMutualConnectionsUsersIds(currentUserId, listing.ownerId).observe(lifecycleOwner) { ids ->
+        //     if (ids.isNotEmpty()) {
+        //         holder.binding.cvMutualTag.visibility = View.VISIBLE
+        //         holder.binding.tvMutualCount.text = "${ids.size} mutual"
+        //     } else {
+        //         holder.binding.cvMutualTag.visibility = View.GONE
+        //     }
+        // }
     }
 
     @SuppressLint("NotifyDataSetChanged")
