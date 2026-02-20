@@ -5,6 +5,8 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
@@ -25,6 +27,7 @@ class FeedFragment : Fragment() {
     private lateinit var viewModel: FeedViewModel
 
     private val originalListings = mutableListOf<Listing>()
+    private var currentRates: Map<String, Double>? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -43,6 +46,7 @@ class FeedFragment : Fragment() {
         setupSearchView()
         setupDatePickers()
         setupPriceFilters()
+        setupCurrencySpinner()
 
         binding.fabAddListing.setOnClickListener {
             findNavController().navigate(FeedFragmentDirections.actionFeedFragmentToCreateListingFragment())
@@ -53,6 +57,13 @@ class FeedFragment : Fragment() {
             originalListings.addAll(listings)
             filterAndDisplayListings()
         }
+
+        viewModel.exchangeRates.observe(viewLifecycleOwner) { rates ->
+            currentRates = rates
+            updateAdapterCurrency()
+        }
+
+        viewModel.fetchExchangeRates("USD")
     }
 
     private fun setupRecyclerView() {
@@ -106,6 +117,27 @@ class FeedFragment : Fragment() {
             binding.etMaxPrice.text.clear()
             filterAndDisplayListings()
         }
+    }
+
+    private fun setupCurrencySpinner() {
+        val currencies = arrayOf("USD", "ILS", "EUR", "GBP")
+        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, currencies)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.spinnerCurrency.adapter = adapter
+
+        binding.spinnerCurrency.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                updateAdapterCurrency()
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+    }
+
+    private fun updateAdapterCurrency() {
+        val selectedCurrency = binding.spinnerCurrency.selectedItem.toString()
+        val rate = currentRates?.get(selectedCurrency) ?: 1.0
+        listingAdapter.updateCurrency(selectedCurrency, rate)
     }
 
     private fun showDatePickerDialog(onDateSelected: (String) -> Unit) {

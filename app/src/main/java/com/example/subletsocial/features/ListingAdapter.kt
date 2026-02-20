@@ -4,17 +4,18 @@ import android.annotation.SuppressLint
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.lifecycle.LifecycleOwner
-import androidx.navigation.findNavController
 import androidx.recyclerview.widget.RecyclerView
 import com.example.subletsocial.databinding.ListingListItemBinding
 import com.example.subletsocial.model.Listing
-import com.example.subletsocial.model.Model
 import com.google.firebase.auth.FirebaseAuth
 import com.squareup.picasso.Picasso
+import java.util.Locale
 
 class ListingAdapter(private var listings: List<Listing>, private val onItemClicked: (String) -> Unit) :
     RecyclerView.Adapter<ListingAdapter.ListingViewHolder>() {
+
+    private var currentCurrency: String = "USD"
+    private var exchangeRate: Double = 1.0
 
     class ListingViewHolder(val binding: ListingListItemBinding) :
         RecyclerView.ViewHolder(binding.root)
@@ -30,7 +31,9 @@ class ListingAdapter(private var listings: List<Listing>, private val onItemClic
         val listing = listings[position]
         holder.binding.tvListingTitle.text = listing.title
         holder.binding.tvListingLocation.text = listing.locationName
-        holder.binding.tvListingPrice.text = "$${listing.price}"
+        
+        val convertedPrice = listing.price * exchangeRate
+        holder.binding.tvListingPrice.text = String.format(Locale.US, "%.2f %s", convertedPrice, currentCurrency)
 
         holder.binding.tvListingDates.text = "${listing.startDate} - ${listing.endDate}"
         holder.binding.tvListingRooms.text = "${listing.bedrooms} bed • ${listing.bathrooms} bath"
@@ -44,25 +47,18 @@ class ListingAdapter(private var listings: List<Listing>, private val onItemClic
         holder.binding.root.setOnClickListener {
             onItemClicked(listing.id)
         }
-
-        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
-
-        if(currentUserId == null || currentUserId == listing.ownerId) return
-
-        // The lifecycle owner would need to be passed in to use this feature
-        // Model.shared.getMutualConnectionsUsersIds(currentUserId, listing.ownerId).observe(lifecycleOwner) { ids ->
-        //     if (ids.isNotEmpty()) {
-        //         holder.binding.cvMutualTag.visibility = View.VISIBLE
-        //         holder.binding.tvMutualCount.text = "${ids.size} mutual"
-        //     } else {
-        //         holder.binding.cvMutualTag.visibility = View.GONE
-        //     }
-        // }
     }
 
     @SuppressLint("NotifyDataSetChanged")
     fun updateListings(newListings: List<Listing>) {
         listings = newListings
+        notifyDataSetChanged()
+    }
+
+    @SuppressLint("NotifyDataSetChanged")
+    fun updateCurrency(currency: String, rate: Double) {
+        currentCurrency = currency
+        exchangeRate = rate
         notifyDataSetChanged()
     }
 }
