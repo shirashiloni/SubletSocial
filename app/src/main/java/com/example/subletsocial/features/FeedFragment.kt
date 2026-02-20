@@ -61,6 +61,7 @@ class FeedFragment : Fragment() {
         viewModel.exchangeRates.observe(viewLifecycleOwner) { rates ->
             currentRates = rates
             updateAdapterCurrency()
+            filterAndDisplayListings() // Re-filter when rates arrive or change
         }
 
         viewModel.fetchExchangeRates("USD")
@@ -128,6 +129,7 @@ class FeedFragment : Fragment() {
         binding.spinnerCurrency.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 updateAdapterCurrency()
+                filterAndDisplayListings() // Re-filter when currency changes
             }
 
             override fun onNothingSelected(parent: AdapterView<*>?) {}
@@ -161,8 +163,11 @@ class FeedFragment : Fragment() {
         val searchQuery = binding.searchView.query.toString().lowercase(Locale.getDefault())
         val startDate = binding.etStartDate.text.toString()
         val endDate = binding.etEndDate.text.toString()
-        val minPrice = binding.etMinPrice.text.toString().toIntOrNull() ?: 0
-        val maxPrice = binding.etMaxPrice.text.toString().toIntOrNull() ?: Int.MAX_VALUE
+        val minPrice = binding.etMinPrice.text.toString().toDoubleOrNull() ?: 0.0
+        val maxPrice = binding.etMaxPrice.text.toString().toDoubleOrNull() ?: Double.MAX_VALUE
+
+        val selectedCurrency = binding.spinnerCurrency.selectedItem?.toString() ?: "USD"
+        val rate = currentRates?.get(selectedCurrency) ?: 1.0
 
         val filteredListings = originalListings.filter { listing ->
             val titleMatches = listing.title.lowercase(Locale.getDefault()).contains(searchQuery)
@@ -174,7 +179,8 @@ class FeedFragment : Fragment() {
                 true
             }
 
-            val priceMatches = listing.price in minPrice..maxPrice
+            val convertedPrice = listing.price * rate
+            val priceMatches = convertedPrice in minPrice..maxPrice
 
             (titleMatches || locationMatches) && dateMatches && priceMatches
         }
