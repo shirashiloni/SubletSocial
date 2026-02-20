@@ -42,6 +42,7 @@ class FeedFragment : Fragment() {
         setupRecyclerView()
         setupSearchView()
         setupDatePickers()
+        setupPriceFilters()
 
         binding.fabAddListing.setOnClickListener {
             findNavController().navigate(FeedFragmentDirections.actionFeedFragmentToCreateListingFragment())
@@ -92,7 +93,17 @@ class FeedFragment : Fragment() {
         binding.ivClearDateFilter.setOnClickListener {
             binding.etStartDate.text.clear()
             binding.etEndDate.text.clear()
-            binding.searchView.setQuery("", false)
+            filterAndDisplayListings()
+        }
+    }
+
+    private fun setupPriceFilters() {
+        binding.ivApplyPriceFilter.setOnClickListener {
+            filterAndDisplayListings()
+        }
+        binding.ivClearPriceFilter.setOnClickListener {
+            binding.etMinPrice.text.clear()
+            binding.etMaxPrice.text.clear()
             filterAndDisplayListings()
         }
     }
@@ -118,16 +129,22 @@ class FeedFragment : Fragment() {
         val searchQuery = binding.searchView.query.toString().lowercase(Locale.getDefault())
         val startDate = binding.etStartDate.text.toString()
         val endDate = binding.etEndDate.text.toString()
+        val minPrice = binding.etMinPrice.text.toString().toIntOrNull() ?: 0
+        val maxPrice = binding.etMaxPrice.text.toString().toIntOrNull() ?: Int.MAX_VALUE
 
         val filteredListings = originalListings.filter { listing ->
             val titleMatches = listing.title.lowercase(Locale.getDefault()).contains(searchQuery)
             val locationMatches = listing.locationName.lowercase(Locale.getDefault()).contains(searchQuery)
+            
             val dateMatches = if (startDate.isNotEmpty() && endDate.isNotEmpty()) {
                 isDateRangeOverlap(listing, startDate, endDate)
             } else {
                 true
             }
-            (titleMatches || locationMatches) && dateMatches
+
+            val priceMatches = listing.price in minPrice..maxPrice
+
+            (titleMatches || locationMatches) && dateMatches && priceMatches
         }
 
         listingAdapter.updateListings(filteredListings)
