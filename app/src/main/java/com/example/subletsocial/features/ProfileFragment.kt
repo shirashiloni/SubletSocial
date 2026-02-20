@@ -1,7 +1,10 @@
 package com.example.subletsocial.features
 
 import android.app.AlertDialog
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -9,6 +12,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
@@ -30,6 +34,26 @@ class ProfileFragment : Fragment() {
     private var profileUserId: String? = null
 
     private var isFollowing = false
+
+    private val galleryLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let {
+            try {
+                val inputStream = requireContext().contentResolver.openInputStream(it)
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+                uploadProfileImage(bitmap)
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Failed to load image", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private val cameraLauncher = registerForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
+        if (bitmap != null) {
+            uploadProfileImage(bitmap)
+        } else {
+            Toast.makeText(requireContext(), "Failed to capture photo", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -63,7 +87,7 @@ class ProfileFragment : Fragment() {
         binding.tvBio.text = "Please log in to view your profile."
         binding.rvMyListings.visibility = View.GONE
         binding.ivEditBio.visibility = View.GONE
-        binding.ivProfileImage.setImageResource(R.drawable.ic_default_avatar) // Ensure you have this drawable
+        binding.ivProfileImage.setImageResource(R.drawable.ic_default_avatar)
     }
 
     private fun setupProfileView(userIdToDisplay: String, currentLoggedInId: String?) {
@@ -73,9 +97,11 @@ class ProfileFragment : Fragment() {
             binding.ivEditBio.visibility = View.VISIBLE
             binding.ivLogout.visibility = View.VISIBLE
             binding.ivEditBio.setOnClickListener { showEditBioDialog() }
+            binding.ivProfileImage.setOnClickListener { showImageSourceDialog() }
         } else {
             binding.ivEditBio.visibility = View.GONE
             binding.ivLogout.visibility = View.GONE
+            binding.ivProfileImage.setOnClickListener(null)
         }
 
         binding.rvMyListings.visibility = View.VISIBLE
@@ -135,6 +161,36 @@ class ProfileFragment : Fragment() {
             Log.d("ProfileFragment", "Listings received: ${listings?.size ?: 0}")
             binding.tvNumListings.text = "${listings?.size ?: 0} Listings"
             listings?.let { listingsAdapter.updateListings(it) }
+        }
+    }
+
+    private fun showImageSourceDialog() {
+        val options = arrayOf("Take Photo", "Choose from Gallery")
+        AlertDialog.Builder(requireContext())
+            .setTitle("Change Profile Picture")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> cameraLauncher.launch(null)
+                    1 -> galleryLauncher.launch("image/*")
+                }
+            }
+            .show()
+    }
+
+    private fun uploadProfileImage(bitmap: Bitmap) {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        
+        Toast.makeText(context, "Updating profile picture...", Toast.LENGTH_SHORT).show()
+        
+        Model.shared.uploadImage(bitmap, "avatar_$userId") { url ->
+            if (url != null) {
+                Model.shared.updateUserAvatar(userId, url) {
+                    binding.ivProfileImage.setImageBitmap(bitmap)
+                    Toast.makeText(context, "Profile picture updated!", Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                Toast.makeText(context, "Failed to upload image", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
