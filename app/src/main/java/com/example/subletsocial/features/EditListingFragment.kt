@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -16,9 +17,15 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
+import com.example.subletsocial.BuildConfig
+import com.example.subletsocial.R
 import com.example.subletsocial.databinding.FragmentCreateListingBinding
 import com.example.subletsocial.model.Listing
 import com.example.subletsocial.model.Model
+import com.google.android.libraries.places.api.Places
+import com.google.android.libraries.places.api.model.Place
+import com.google.android.libraries.places.widget.AutocompleteSupportFragment
+import com.google.android.libraries.places.widget.listener.PlaceSelectionListener
 import com.google.android.material.chip.Chip
 import com.squareup.picasso.Picasso
 import java.util.Calendar
@@ -68,6 +75,7 @@ class EditListingFragment : Fragment() {
         val listingId = args.listingId
 
         setupDatePickers()
+        setupPlacesAutocomplete()
 
         binding.cvImageUpload.setOnClickListener {
             showImageSourceDialog()
@@ -78,7 +86,12 @@ class EditListingFragment : Fragment() {
                 binding.etTitle.setText(currentListing.title)
                 binding.etPrice.setText(currentListing.price.toString())
                 binding.etDescription.setText(currentListing.description)
+                
+                val autocompleteFragment =
+                    childFragmentManager.findFragmentById(R.id.autocomplete_fragment) as AutocompleteSupportFragment
+                autocompleteFragment.setText(currentListing.locationName)
                 binding.etLocation.setText(currentListing.locationName)
+
                 binding.etBedrooms.setText(currentListing.bedrooms.toString())
                 binding.etBathrooms.setText(currentListing.bathrooms.toString())
                 binding.etStartDate.setText(currentListing.startDate)
@@ -104,6 +117,27 @@ class EditListingFragment : Fragment() {
                 }
             }
         }
+    }
+
+    private fun setupPlacesAutocomplete() {
+        if (!Places.isInitialized()) {
+            Places.initialize(requireContext().applicationContext, BuildConfig.MAPS_API_KEY)
+        }
+
+        val autocompleteFragment =
+            childFragmentManager.findFragmentById(R.id.autocomplete_fragment) as AutocompleteSupportFragment
+
+        autocompleteFragment.setPlaceFields(listOf(Place.Field.ID, Place.Field.NAME, Place.Field.ADDRESS))
+
+        autocompleteFragment.setOnPlaceSelectedListener(object : PlaceSelectionListener {
+            override fun onPlaceSelected(place: Place) {
+                binding.etLocation.setText(place.address)
+            }
+
+            override fun onError(status: com.google.android.gms.common.api.Status) {
+                Log.i("Places", "An error occurred: $status")
+            }
+        })
     }
 
     private fun showImageSourceDialog() {
@@ -164,9 +198,9 @@ class EditListingFragment : Fragment() {
 
             val updatedListing = originalListing.copy(
                 title = binding.etTitle.text.toString(),
+                locationName = binding.etLocation.text.toString(),
                 price = binding.etPrice.text.toString().toIntOrNull() ?: 0,
                 description = binding.etDescription.text.toString(),
-                locationName = binding.etLocation.text.toString(),
                 bedrooms = binding.etBedrooms.text.toString().toIntOrNull() ?: 0,
                 bathrooms = binding.etBathrooms.text.toString().toIntOrNull() ?: 0,
                 startDate = binding.etStartDate.text.toString(),
