@@ -128,7 +128,15 @@ class Model private constructor() {
     }
 
     fun updateUserBio(userId: String, bio: String, callback: () -> Unit) {
-        firestore.collection("users").document(userId).update("bio", bio).addOnSuccessListener { callback() }
+        firestore.collection("users").document(userId)
+            .update("bio", bio)
+            .addOnSuccessListener { callback() }
+    }
+
+    fun updateUserAvatar(userId: String, avatarUrl: String, callback: () -> Unit) {
+        firestore.collection("users").document(userId)
+            .update("avatarUrl", avatarUrl)
+            .addOnSuccessListener { callback() }
     }
 
     private val storage = FirebaseStorage.getInstance()
