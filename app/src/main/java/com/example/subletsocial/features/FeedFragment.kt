@@ -52,10 +52,12 @@ class FeedFragment : Fragment() {
             findNavController().navigate(FeedFragmentDirections.actionFeedFragmentToCreateListingFragment())
         }
 
+        binding.progressBarFeed.visibility = View.VISIBLE
         viewModel.listings.observe(viewLifecycleOwner) { listings ->
             originalListings.clear()
             originalListings.addAll(listings)
             filterAndDisplayListings()
+            binding.progressBarFeed.visibility = View.GONE
         }
 
         viewModel.exchangeRates.observe(viewLifecycleOwner) { rates ->

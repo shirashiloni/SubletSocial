@@ -137,6 +137,7 @@ class ProfileFragment : Fragment() {
             }
         }
 
+        binding.progressBarProfile.visibility = View.VISIBLE
         Model.shared.getUserData(userIdToDisplay).observe(viewLifecycleOwner) { user ->
             if (user != null) {
                 binding.tvProfileName.text = user.name
@@ -154,6 +155,7 @@ class ProfileFragment : Fragment() {
                     binding.ivProfileImage.setImageResource(R.drawable.ic_default_avatar)
                 }
             }
+            checkLoadingFinished()
         }
 
         Log.d("ProfileFragment", "Fetching listings for user: $userIdToDisplay")
@@ -161,6 +163,14 @@ class ProfileFragment : Fragment() {
             Log.d("ProfileFragment", "Listings received: ${listings?.size ?: 0}")
             binding.tvNumListings.text = "${listings?.size ?: 0} Listings"
             listings?.let { listingsAdapter.updateListings(it) }
+            checkLoadingFinished()
+        }
+    }
+
+    private fun checkLoadingFinished() {
+        // Simple check: if we have user name (loaded from getUserData) and we've at least received the listings observer
+        if (binding.tvProfileName.text != "User Name") {
+             binding.progressBarProfile.visibility = View.GONE
         }
     }
 
@@ -180,15 +190,16 @@ class ProfileFragment : Fragment() {
     private fun uploadProfileImage(bitmap: Bitmap) {
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
         
-        Toast.makeText(context, "Updating profile picture...", Toast.LENGTH_SHORT).show()
-        
+        binding.progressBarProfile.visibility = View.VISIBLE
         Model.shared.uploadImage(bitmap, "avatar_$userId") { url ->
             if (url != null) {
                 Model.shared.updateUserAvatar(userId, url) {
                     binding.ivProfileImage.setImageBitmap(bitmap)
+                    binding.progressBarProfile.visibility = View.GONE
                     Toast.makeText(context, "Profile picture updated!", Toast.LENGTH_SHORT).show()
                 }
             } else {
+                binding.progressBarProfile.visibility = View.GONE
                 Toast.makeText(context, "Failed to upload image", Toast.LENGTH_SHORT).show()
             }
         }
@@ -218,8 +229,10 @@ class ProfileFragment : Fragment() {
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
 
         if (currentUserId != null && currentUserId == profileUserId) {
+            binding.progressBarProfile.visibility = View.VISIBLE
             Model.shared.updateUserBio(currentUserId, newBio) {
                 binding.tvBio.text = newBio
+                binding.progressBarProfile.visibility = View.GONE
                 Toast.makeText(context, "Bio updated!", Toast.LENGTH_SHORT).show()
             }
         }
