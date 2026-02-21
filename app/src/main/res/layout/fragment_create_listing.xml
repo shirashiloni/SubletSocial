@@ -165,10 +165,9 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:hint="Monthly Price"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/spinnerCreateCurrency"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tilBedrooms"
-            app:prefixText="$">
+            app:layout_constraintTop_toBottomOf="@id/tilBedrooms">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etPrice"
@@ -176,6 +175,15 @@
                 android:layout_height="wrap_content"
                 android:inputType="number" />
         </com.google.android.material.textfield.TextInputLayout>
+
+        <Spinner
+            android:id="@+id/spinnerCreateCurrency"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            app:layout_constraintBottom_toBottomOf="@id/tilPrice"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/tilPrice" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilStartDate"

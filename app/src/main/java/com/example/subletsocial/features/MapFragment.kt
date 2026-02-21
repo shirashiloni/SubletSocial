@@ -93,6 +93,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             googleMap.uiSettings.isMyLocationButtonEnabled = true
         }
 
+        binding.progressBarMap.visibility = View.VISIBLE
         val fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity())
         fusedLocationClient.lastLocation.addOnSuccessListener { location ->
             if (location != null) {
@@ -104,6 +105,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             }
         }.addOnFailureListener {
             setupMapWithDefaultLocation()
+            binding.progressBarMap.visibility = View.GONE
         }
     }
 
@@ -122,6 +124,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         Model.shared.refreshListingsInBounds(initialBounds)
 
         googleMap.setOnCameraIdleListener {
+            binding.progressBarMap.visibility = View.VISIBLE
             val bounds = googleMap.projection.visibleRegion.latLngBounds
             Model.shared.refreshListingsInBounds(bounds)
         }
@@ -131,6 +134,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
 
     private fun observeListings() {
         Model.shared.mapListings.observe(viewLifecycleOwner) { listings ->
+            binding.progressBarMap.visibility = View.GONE
             val listingsInScope = listings.map { it.id }.toSet()
 
             // 1. Remove markers that are no longer in view

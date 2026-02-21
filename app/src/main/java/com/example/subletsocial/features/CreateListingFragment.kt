@@ -9,11 +9,13 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ArrayAdapter
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
 import com.example.subletsocial.BuildConfig
 import com.example.subletsocial.databinding.FragmentCreateListingBinding
@@ -38,6 +40,8 @@ class CreateListingFragment : Fragment() {
 
     private val selectedBitmaps = mutableListOf<Bitmap>()
     private var selectedPlace: Place? = null
+    private lateinit var viewModel: FeedViewModel
+    private var currentRates: Map<String, Double>? = null
 
     private val galleryLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
@@ -72,8 +76,15 @@ class CreateListingFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        viewModel = ViewModelProvider(this)[FeedViewModel::class.java]
         setupPlacesAutocomplete()
         setupDatePickers()
+        setupCurrencySpinner()
+
+        viewModel.exchangeRates.observe(viewLifecycleOwner) { rates ->
+            currentRates = rates
+        }
+        viewModel.fetchExchangeRates("USD")
 
         binding.cvImageUpload.setOnClickListener {
             showImageSourceDialog()
@@ -95,19 +106,38 @@ class CreateListingFragment : Fragment() {
                 return@setOnClickListener
             }
 
+            if (currentRates == null) {
+                Toast.makeText(context, "Fetching exchange rates, please wait...", Toast.LENGTH_SHORT).show()
+                viewModel.fetchExchangeRates("USD")
+                return@setOnClickListener
+            }
+
             binding.progressBar.visibility = View.VISIBLE
             binding.btnPost.isEnabled = false
 
             val listingId = UUID.randomUUID().toString()
+            
+            // Convert price to USD
+            val inputPrice = priceStr.toDoubleOrNull() ?: 0.0
+            val selectedCurrency = binding.spinnerCreateCurrency.selectedItem.toString()
+            val rate = currentRates?.get(selectedCurrency) ?: 1.0
+            val priceInUSD = (inputPrice / rate).toInt()
 
             if (selectedBitmaps.isNotEmpty()) {
                 Model.shared.uploadImages(selectedBitmaps, listingId) { imageUrls ->
-                    saveListingToDb(listingId, imageUrls, title, priceStr)
+                    saveListingToDb(listingId, imageUrls, title, priceInUSD)
                 }
             } else {
-                saveListingToDb(listingId, emptyList(), title, priceStr)
+                saveListingToDb(listingId, emptyList(), title, priceInUSD)
             }
         }
+    }
+
+    private fun setupCurrencySpinner() {
+        val currencies = arrayOf("USD", "ILS", "EUR")
+        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, currencies)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.spinnerCreateCurrency.adapter = adapter
     }
 
     private fun setupPlacesAutocomplete() {
@@ -156,7 +186,7 @@ class CreateListingFragment : Fragment() {
         binding.llImagesContainer.addView(imageView)
     }
 
-    private fun saveListingToDb(id: String, imageUrls: List<String>, title: String, priceStr: String) {
+    private fun saveListingToDb(id: String, imageUrls: List<String>, title: String, priceInUSD: Int) {
         val selectedAmenities = mutableListOf<String>()
         for (i in 0 until binding.cgAmenities.childCount) {
             val chip = binding.cgAmenities.getChildAt(i) as Chip
@@ -170,7 +200,7 @@ class CreateListingFragment : Fragment() {
             id = id,
             title = title,
             imageUrls = imageUrls,
-            price = priceStr.toIntOrNull() ?: 0,
+            price = priceInUSD,
             description = binding.etDescription.text.toString(),
             ownerId = FirebaseAuth.getInstance().currentUser?.uid ?: "",
             locationName = binding.etLocation.text.toString(),
