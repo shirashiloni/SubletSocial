@@ -9,8 +9,10 @@ import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
 import com.example.subletsocial.R
 import com.example.subletsocial.databinding.FragmentMapBinding
+import com.example.subletsocial.model.Listing
 import com.example.subletsocial.model.Model
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -18,6 +20,7 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 
 class MapFragment : Fragment(), OnMapReadyCallback {
@@ -26,6 +29,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     private val binding get() = _binding!!
     private lateinit var googleMap: GoogleMap
     private var mapInitialized = false
+    private val idMarkerMap = mutableMapOf<String, Marker>()
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -56,6 +60,15 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     override fun onMapReady(map: GoogleMap) {
         googleMap = map
         googleMap.uiSettings.isZoomControlsEnabled = true
+        
+        // Navigate to SinglePostFragment when the info window is clicked
+        googleMap.setOnInfoWindowClickListener { marker ->
+            (marker.tag as? Listing)?.let { listing ->
+                val action = MapFragmentDirections.actionMapFragmentToSinglePostFragment(listing.id)
+                findNavController().navigate(action)
+            }
+        }
+
         checkLocationPermissionAndSetupMap()
     }
 
@@ -75,7 +88,6 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     private fun setupMapWithLocation() {
         if (mapInitialized) return
         
-        // Ensure permissions before enabling the location layer (marking the user on the map)
         if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             googleMap.isMyLocationEnabled = true
             googleMap.uiSettings.isMyLocationButtonEnabled = true
@@ -106,11 +118,9 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         if (mapInitialized) return
         mapInitialized = true
 
-        // Initial data load based on current bounds
         val initialBounds = googleMap.projection.visibleRegion.latLngBounds
         Model.shared.refreshListingsInBounds(initialBounds)
 
-        // Listen for camera idle changes only after map is initialized
         googleMap.setOnCameraIdleListener {
             val bounds = googleMap.projection.visibleRegion.latLngBounds
             Model.shared.refreshListingsInBounds(bounds)
@@ -121,16 +131,34 @@ class MapFragment : Fragment(), OnMapReadyCallback {
 
     private fun observeListings() {
         Model.shared.mapListings.observe(viewLifecycleOwner) { listings ->
-            googleMap.clear()
+            val listingsInScope = listings.map { it.id }.toSet()
+
+            // 1. Remove markers that are no longer in view
+            val iterator = idMarkerMap.iterator()
+            while (iterator.hasNext()) {
+                val entry = iterator.next()
+                if (!listingsInScope.contains(entry.key)) {
+                    entry.value.remove()
+                    iterator.remove()
+                }
+            }
+
+            // 2. Add only new markers
             listings.forEach { listing ->
-                val geo = listing.locationData.geoPoint
-                val latLng = LatLng(geo.latitude, geo.longitude)
-                googleMap.addMarker(
-                    MarkerOptions()
-                        .position(latLng)
-                        .title(listing.title)
-                        .snippet("${listing.price}$")
-                )
+                if (!idMarkerMap.containsKey(listing.id)) {
+                    val geo = listing.locationData.geoPoint
+                    val latLng = LatLng(geo.latitude, geo.longitude)
+                    val marker = googleMap.addMarker(
+                        MarkerOptions()
+                            .position(latLng)
+                            .title(listing.title)
+                            .snippet("${listing.price}$")
+                    )
+                    marker?.let {
+                        it.tag = listing // Store the whole object in the tag
+                        idMarkerMap[listing.id] = it
+                    }
+                }
             }
         }
     }
