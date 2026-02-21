@@ -5,6 +5,8 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
@@ -25,6 +27,7 @@ class FeedFragment : Fragment() {
     private lateinit var viewModel: FeedViewModel
 
     private val originalListings = mutableListOf<Listing>()
+    private var currentRates: Map<String, Double>? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -43,6 +46,7 @@ class FeedFragment : Fragment() {
         setupSearchView()
         setupDatePickers()
         setupPriceFilters()
+        setupCurrencySpinner()
 
         binding.fabAddListing.setOnClickListener {
             findNavController().navigate(FeedFragmentDirections.actionFeedFragmentToCreateListingFragment())
@@ -53,6 +57,14 @@ class FeedFragment : Fragment() {
             originalListings.addAll(listings)
             filterAndDisplayListings()
         }
+
+        viewModel.exchangeRates.observe(viewLifecycleOwner) { rates ->
+            currentRates = rates
+            updateAdapterCurrency()
+            filterAndDisplayListings() // Re-filter when rates arrive or change
+        }
+
+        viewModel.fetchExchangeRates("USD")
     }
 
     private fun setupRecyclerView() {
@@ -108,6 +120,28 @@ class FeedFragment : Fragment() {
         }
     }
 
+    private fun setupCurrencySpinner() {
+        val currencies = arrayOf("USD", "ILS", "EUR", "GBP")
+        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, currencies)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.spinnerCurrency.adapter = adapter
+
+        binding.spinnerCurrency.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                updateAdapterCurrency()
+                filterAndDisplayListings() // Re-filter when currency changes
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+    }
+
+    private fun updateAdapterCurrency() {
+        val selectedCurrency = binding.spinnerCurrency.selectedItem.toString()
+        val rate = currentRates?.get(selectedCurrency) ?: 1.0
+        listingAdapter.updateCurrency(selectedCurrency, rate)
+    }
+
     private fun showDatePickerDialog(onDateSelected: (String) -> Unit) {
         val calendar = Calendar.getInstance()
         DatePickerDialog(
@@ -129,8 +163,11 @@ class FeedFragment : Fragment() {
         val searchQuery = binding.searchView.query.toString().lowercase(Locale.getDefault())
         val startDate = binding.etStartDate.text.toString()
         val endDate = binding.etEndDate.text.toString()
-        val minPrice = binding.etMinPrice.text.toString().toIntOrNull() ?: 0
-        val maxPrice = binding.etMaxPrice.text.toString().toIntOrNull() ?: Int.MAX_VALUE
+        val minPrice = binding.etMinPrice.text.toString().toDoubleOrNull() ?: 0.0
+        val maxPrice = binding.etMaxPrice.text.toString().toDoubleOrNull() ?: Double.MAX_VALUE
+
+        val selectedCurrency = binding.spinnerCurrency.selectedItem?.toString() ?: "USD"
+        val rate = currentRates?.get(selectedCurrency) ?: 1.0
 
         val filteredListings = originalListings.filter { listing ->
             val titleMatches = listing.title.lowercase(Locale.getDefault()).contains(searchQuery)
@@ -142,7 +179,8 @@ class FeedFragment : Fragment() {
                 true
             }
 
-            val priceMatches = listing.price in minPrice..maxPrice
+            val convertedPrice = listing.price * rate
+            val priceMatches = convertedPrice in minPrice..maxPrice
 
             (titleMatches || locationMatches) && dateMatches && priceMatches
         }
