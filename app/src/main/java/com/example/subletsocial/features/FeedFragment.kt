@@ -123,7 +123,7 @@ class FeedFragment : Fragment() {
     }
 
     private fun setupCurrencySpinner() {
-        val currencies = arrayOf("USD", "ILS", "EUR", "GBP")
+        val currencies = arrayOf("USD", "ILS", "EUR")
         val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, currencies)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         binding.spinnerCurrency.adapter = adapter
